@@ -1,0 +1,9 @@
+[workspace]
+members = [
+  # "labs/treesitter-lab",
+    "privguide",
+    "privguide-cli",
+  # "privguide-app",
+]
+
+resolver = "2"

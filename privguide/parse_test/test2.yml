@@ -1,0 +1,11 @@
+a:
+  id: id_a
+  b:
+    id: id_b
+    c: 1
+    d: 2
+  e: 3
+f: aaa
+g:
+  id: something
+  h: new

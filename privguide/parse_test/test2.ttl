@@ -1,0 +1,17 @@
+@prefix : <http://example.com/> .
+
+:ROOT
+    :a  :id_a;
+    :f  "aaa";
+    :g  :something.
+
+:id_a
+    :b  :id_b;
+    :e  3.
+
+:id_b
+    :c  1;
+    :d  2.
+
+:something
+    :h  "new".

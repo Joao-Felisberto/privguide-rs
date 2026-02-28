@@ -1,0 +1,13 @@
+a: 1
+b: 2.5
+c: a
+d: 'a'
+e: "a"
+f: "aaa"
+g: 'aaa' 
+h: true
+i: false
+j: 
+  - 1
+  - a
+  - true

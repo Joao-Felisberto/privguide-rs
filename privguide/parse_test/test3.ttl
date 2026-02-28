@@ -1,0 +1,14 @@
+@prefix : <http://example.com/> .
+
+:ROOT
+    :arr    :a1;
+    :arr    :a2;
+    :arr    2.
+
+:a1
+    :a  1;
+    :b  2.
+
+:a2
+    :c  3;
+    :d  4.
