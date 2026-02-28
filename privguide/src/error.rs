@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use oxigraph::sparql::{QueryEvaluationError, SparqlSyntaxError};
+use oxigraph::sparql::{QueryEvaluationError, SparqlSyntaxError, UpdateEvaluationError};
 use oxigraph::model::{BlankNodeIdParseError, IriParseError};
 use oxigraph::store::StorageError;
 use thiserror::Error;
@@ -27,6 +27,8 @@ pub enum ExecuteQueryError {
     SyntaxError(#[from] SparqlSyntaxError),
     #[error("Could not evaluate query: {0}")]
     QueryEvaluationError(#[from] QueryEvaluationError),
+    #[error("Could not evaluate update query: {0}")]
+    UpdateEvaluationError(#[from] UpdateEvaluationError),
 }
 
 /*

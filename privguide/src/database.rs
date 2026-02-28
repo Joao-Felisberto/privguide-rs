@@ -24,6 +24,7 @@ static IRI_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^([a-zA-Z]+):(
 
 pub trait Database {
     fn execute_query(&self, query_k: &str) -> Result<Vec<Vec<(String, String)>>, ExecuteQueryError>;
+    fn execute_update(&self, query_k: &str) -> Result<(), ExecuteQueryError>;
 
     fn load_query(&mut self, file: String, query: Query);
 
@@ -109,26 +110,32 @@ impl Database for MemDatabase {
             .execute()?;
 
         if let QueryResults::Solutions(solutions) = query_results {
-            /*
-            let mut sols = Vec::new();
-            for s in solutions {
-                let solution = s?;
-                sols.push(solution);
-            }
-            Ok(sols)
-            */
             Ok(solutions.into_iter()
                 .filter_map(|sol| sol.ok()) // maybe do better error handling?
                 .map(|sol| sol.iter()
                     .map(|pair| (
                         pair.0.to_string(),
-                        pair.1.to_string(),
+                        term_to_string(pair.1),
                     )).collect()
                 ).collect())
         } else {
             Ok(Vec::new()) // todo: there are more options that might be useful to implement,
                            // check https://docs.rs/oxigraph/latest/oxigraph/sparql/enum.QueryResults.html
         }
+    }
+
+    fn execute_update(&self, query_k: &str) -> Result<(), ExecuteQueryError> {
+        let query = self
+            .queries
+            .get(query_k)
+            .ok_or(ExecuteQueryError::QueryNotFound(query_k.to_string()))?;
+
+        SparqlEvaluator::new()
+            .parse_update(&query.get_query())?
+            .on_store(&self.store)
+            .execute()?;
+
+        Ok(())
     }
 
     fn load_query(&mut self, file: String, query: Query) {
@@ -292,6 +299,14 @@ fn subject_from_term(term: Term) -> Option<NamedOrBlankNode> {
     }
 }
 
+fn term_to_string(term: &Term) -> String {
+    match term {
+        Term::NamedNode(nn) => nn.to_string(),
+        Term::BlankNode(bn) => bn.to_string(),
+        Term::Literal(l) => l.value().to_string(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -403,3 +418,4 @@ mod tests {
         Ok(test_files)
     }
 }
+

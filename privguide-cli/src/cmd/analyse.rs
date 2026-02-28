@@ -1,6 +1,4 @@
-use std::{fmt::Display, path::Path};
-
-use privguide::{database::{Database, MemDatabase}, query};
+use privguide::database::{Database, MemDatabase};
 use crate::{db::{self, DBKind, QueryKind}, fs, report::Report};
 
 pub fn analyse(dir: &str) {
@@ -49,7 +47,10 @@ pub fn analyse(dir: &str) {
 
     // Run reasoner
     for query in query_index.get(&QueryKind::Reasoner).or(Some(&Vec::<String>::new())).unwrap() {
-        db.execute_query(query);
+        if let Err(e) = db.execute_update(query) {
+            println!("Error executing reasoner rule '{query}': {e}");
+            return;
+        }
     }
 
     // Run regulations
