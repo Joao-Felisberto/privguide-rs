@@ -1,6 +1,6 @@
 [workspace]
 members = [
-  # "labs/treesitter-lab",
+    "labs/ts-triples",
     "privguide",
     "privguide-cli",
   # "privguide-app",

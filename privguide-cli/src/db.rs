@@ -12,6 +12,7 @@ pub enum QueryKind {
     Requirement,
     Reasoner,
     ExtraInfo,
+    SourceCode,
 }
 
 pub enum DBKind {

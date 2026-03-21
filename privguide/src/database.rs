@@ -15,12 +15,20 @@ use oxigraph::store::{StorageError, Store};
 use regex::Regex;
 use serde_json::Value;
 
+use tree_sitter::Node;
+use tree_sitter::Tree;
+
 use crate::error::DatabaseLoadError;
 use crate::error::ExecuteQueryError;
 use crate::query::{AttackTree, Query};
 
 // https://docs.rs/oxigraph/latest/oxigraph/
 static IRI_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^([a-zA-Z]+):(.*)").unwrap());
+
+struct Frame<'a> {
+    node: Node<'a>,
+    subject: NamedOrBlankNode,
+}
 
 pub trait Database {
     fn execute_query(&self, query_k: &str) -> Result<Vec<Vec<(String, String)>>, ExecuteQueryError>;
@@ -36,7 +44,14 @@ pub trait Database {
         default_predicate: &str,
     ) -> Result<(), DatabaseLoadError>;
 
+    fn load_source_code(
+        &mut self,
+        tree: &Tree,
+        source: &str,
+    ) -> Result<(), DatabaseLoadError>;
+
     fn get_prefix_map(&self) -> &HashMap<String, String>;
+
     fn get_file_prefixes(&self) -> &HashMap<String, String>;
 }
 
@@ -152,11 +167,11 @@ impl Database for MemDatabase {
             }
         }
 
-        if !possible && tree.get_children().len() > 0 {
+        if !possible && !tree.get_children().is_empty() {
             return Ok(());
         }
 
-        let res = self.execute_query(&tree.get_query())?;
+        let res = self.execute_query(tree.get_query())?;
         tree.set_executed(res);
         Ok(())
     }
@@ -288,6 +303,98 @@ impl Database for MemDatabase {
     }
     fn get_file_prefixes(&self) -> &HashMap<String, String> {
         &self.file_prefixes
+    }
+
+
+    fn load_source_code(
+        &mut self,
+        tree: &Tree,
+        source: &str
+    ) -> Result<(), DatabaseLoadError> {
+        let mut quads = Vec::new();
+        let mut stack = Vec::new();
+        
+        let root = tree.root_node();
+
+        let s = "http://exmaple.com/ROOT";
+        let p = "http://example.com/".to_owned() + &root.kind().to_string();
+        let o = BlankNode::default();
+        stack.push(Frame {
+            node: root,
+            subject: NamedOrBlankNode::BlankNode(o.clone()),
+        });
+
+        println!("{s} {p} {o} .");
+        quads.push(Quad {
+            subject: NamedOrBlankNode::NamedNode(NamedNode::new("http://exmaple.com/ROOT")?),
+            predicate: NamedNode::new("http://example.com/".to_owned() + &root.kind().to_string())?,
+            object: Term::BlankNode(o),
+            graph_name: GraphName::DefaultGraph,
+        });
+
+        let mut next_id: usize = 1;
+
+        while let Some(frame) = stack.pop() {
+
+            let node = frame.node;
+            let subject = frame.subject;
+
+            let child_count: u32 = node.named_child_count().try_into().unwrap();
+
+            for i in (0..child_count).rev() {
+
+                let child = node.named_child(i).unwrap();
+
+                let field = node
+                    .field_name_for_named_child(i)
+                    .unwrap_or(child.kind());
+
+                let child_kind = child.kind();
+
+                if child.child_count() == 0 {
+
+                    let text = &source[child.byte_range()];
+
+                    let s = &subject.clone();
+                    let p = "http://example.com/".to_owned() + &field.to_string();
+                    let o: String = format!("\"{text}\"").into();
+                    println!("{s} {p} {o} .");
+                    quads.push(Quad { 
+                        subject: subject.clone(), 
+                        predicate: NamedNode::new("http://example.com/".to_owned() + &field.to_string())?, 
+                        object: Term::Literal(format!("\"{text}\"").into()), 
+                        graph_name: GraphName::DefaultGraph,
+                    });
+
+                } else {
+
+                    let id = next_id;
+                    next_id += 1;
+
+                    let s = &subject.clone();
+                    let p = "http://example.com/".to_owned() + &child_kind.to_string();
+                    let o = BlankNode::default();
+                    println!("{s} {p} {o} .");
+                    quads.push(Quad { 
+                        subject: subject.clone(),
+                        predicate: NamedNode::new("http://example.com/".to_owned() + &child_kind.to_string())?,
+                        object: Term::BlankNode(o.clone()), // Term::BlankNode(BlankNode::default())
+                        graph_name: GraphName::DefaultGraph,
+                    });
+
+                    stack.push(Frame {
+                        node: child,
+                        subject: NamedOrBlankNode::BlankNode(o),
+                    });
+                }
+            }
+        }
+
+        let mut bulk_loader = self.store.bulk_loader();
+        bulk_loader.load_quads(quads)?;
+        bulk_loader.commit()?;
+
+        Ok(())
     }
 }
 

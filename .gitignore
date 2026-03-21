@@ -1,3 +1,4 @@
-.privguide*/
-labs/
+#.privguide*/
+#labs/
 target/
+**/.vscode/*

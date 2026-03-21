@@ -3,7 +3,9 @@ use std::fmt::Display;
 use oxigraph::sparql::{QueryEvaluationError, SparqlSyntaxError, UpdateEvaluationError};
 use oxigraph::model::{BlankNodeIdParseError, IriParseError};
 use oxigraph::store::StorageError;
+use serde::Deserialize;
 use thiserror::Error;
+use tree_sitter::{LanguageError, WasmError};
 
 #[derive(Error, Debug)]
 pub enum ConversionError {
@@ -17,7 +19,7 @@ pub enum ConversionError {
     YAMLError(#[from] serde_yaml_ng::Error),
 }
 
-pub type ConversionResult<T = serde_json::Value> = Result<T, ConversionError>;
+pub type ConversionResult<T: for<'de> Deserialize<'de>> = Result<T, ConversionError>;
 
 #[derive(Error, Debug)]
 pub enum ExecuteQueryError {
@@ -82,4 +84,20 @@ pub enum DataLoadError {
     FileExtensionHasNoPrefixError(String),
     #[error("Could not find URI for prefix '{0}'")]
     PrefixHasNoURI(String),
+}
+
+#[derive(Error, Debug)]
+pub enum CodeParseError {
+    #[error("Failed to open source code file: {0}")]
+    IOError(#[from] std::io::Error),
+    #[error("Cannot parse file with no extension '{0}'")]
+    NoExtension(String),
+    #[error("No grammar found for extension '{0}'")]
+    NoGrammar(String),
+    #[error("Could not load grammar from WASM file: {0}")]
+    LoadGrammarError(#[from] WasmError),
+    #[error("The language was generated with an incompatible version of the Tree-sitter CLI: {0}")]
+    LanguageError(#[from] LanguageError),
+    #[error("Error loading source code into database: {0}")]
+    DatabaseLoadError(#[from] DatabaseLoadError),
 }

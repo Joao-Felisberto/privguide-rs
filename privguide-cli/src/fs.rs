@@ -1,20 +1,39 @@
 use std::{collections::HashMap, io, path::Path, fs::File};
+use serde::Deserialize;
 use serde_json;
 
-use privguide::{converters::convert_file, database::Database, error::{ConversionError, DataLoadError}, query::{AttackTree, Query}};
+use privguide::{code_analysis::{CodeAnalyser, Language}, converters::{Format, convert_file, convert_file_from_format}, database::Database, error::{CodeParseError, ConversionError, ConversionResult, DataLoadError}, query::{AttackTree, Query}};
 
-use crate::db::QueryKind;
+use crate::{db::QueryKind, error::LanguageLoadError};
 
 const EXTENSIONS: [&str; 2] = ["rq", "sparql"];
 const DESCRIPTIONS_DIR: &str = "descriptions";
 const ATTACK_DIR: &str = "attack_trees";
-const SUBDIR_AND_QUERYKIND: [(&str, QueryKind); 5]  = [ 
+const SUBDIR_AND_QUERYKIND: [(&str, QueryKind); 6]  = [ 
     ("attack_trees", QueryKind::Attack),
     ("reasoner", QueryKind::Reasoner),
     ("regulations", QueryKind::Regulation),
     ("report_data", QueryKind::ExtraInfo),
-    ("requirements", QueryKind::Requirement)
+    ("requirements", QueryKind::Requirement),
+    ("source_code", QueryKind::SourceCode),
 ];
+const GRAMMARS_DIR: &str = "grammars";
+
+// TODO: load a JSON/YAML file of these and convert 
+#[derive(Deserialize)]
+pub struct LanguageMetadata {
+    language: String,
+    file_extensions: Vec<String>,
+    grammar_file: String,
+}
+
+impl TryFrom<LanguageMetadata> for Language {
+    type Error = io::Error;
+
+    fn try_from(lm: LanguageMetadata) -> Result<Self, Self::Error> {
+        Language::new(lm.language.clone(), lm.file_extensions.clone(), lm.grammar_file.clone())
+    }
+}
 
 pub fn get_prefix_uri_map(dir: String) -> Result<HashMap<String, String>, io::Error> {
     let file_path = Path::new(&dir).join("prefixes.json");
@@ -134,7 +153,51 @@ pub fn load_attack_trees_from_disk(dir: String) -> Result<Vec<AttackTree>, Conve
     }
 
     Ok(trees)
+}
 
+pub fn load_languages(dir: &str) -> Result<Vec<Language>, LanguageLoadError> {
+    let path = Path::new(dir).join(GRAMMARS_DIR).join("grammars.json");
+    let languages_metadata: Vec<LanguageMetadata> = convert_file_from_format(path.as_path(), Format::JSON)?;
+
+    
+    languages_metadata.into_iter()
+        .map(|lm| {
+            let meta = LanguageMetadata {
+                language: lm.language,
+                file_extensions: lm.file_extensions,
+                grammar_file: Path::new(dir).join(GRAMMARS_DIR).join(lm.grammar_file).canonicalize()?.as_path().to_str().unwrap().to_string(),
+            };
+            Language::try_from(meta).map_err(LanguageLoadError::GrammarError)
+        })
+        .collect()
+}
+
+pub fn load_source_code_files<T: Database>(source_code_dir: &str, db: &mut T, code_analyser: &mut CodeAnalyser) -> Result<(), CodeParseError> {
+    let dir = Path::new(&source_code_dir);
+
+    let mut stack = Vec::new();
+    
+    stack.push(std::fs::read_dir(dir)?);
+    
+    while let Some(mut dir_iter) = stack.pop() {
+        while let Some(entry) = dir_iter.next() {
+            let entry = entry?;
+            let path = entry.path();
+            
+            if path.is_dir() {
+                stack.push(dir_iter);
+                stack.push(std::fs::read_dir(&path)?);
+                break;
+            } 
+
+            match code_analyser.parse_file(db, path.as_path()) {
+                Ok(()) | Err(CodeParseError::NoGrammar(_)) => Ok(()),
+                Err(e) => Err(e), 
+            }?;
+        }
+    }
+
+    Ok(())
 }
 
 fn extract_placeholder_from_path<P: AsRef<Path>>(path: P) -> Option<String> {
