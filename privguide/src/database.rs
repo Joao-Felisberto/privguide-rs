@@ -301,6 +301,7 @@ impl Database for MemDatabase {
     fn get_prefix_map(&self) -> &HashMap<String, String> {
         &self.prefixes
     }
+
     fn get_file_prefixes(&self) -> &HashMap<String, String> {
         &self.file_prefixes
     }
@@ -324,7 +325,6 @@ impl Database for MemDatabase {
             subject: NamedOrBlankNode::BlankNode(o.clone()),
         });
 
-        println!("{s} {p} {o} .");
         quads.push(Quad {
             subject: NamedOrBlankNode::NamedNode(NamedNode::new("http://exmaple.com/ROOT")?),
             predicate: NamedNode::new("http://example.com/".to_owned() + &root.kind().to_string())?,
@@ -358,7 +358,6 @@ impl Database for MemDatabase {
                     let s = &subject.clone();
                     let p = "http://example.com/".to_owned() + &field.to_string();
                     let o: String = format!("\"{text}\"").into();
-                    println!("{s} {p} {o} .");
                     quads.push(Quad { 
                         subject: subject.clone(), 
                         predicate: NamedNode::new("http://example.com/".to_owned() + &field.to_string())?, 
@@ -374,7 +373,6 @@ impl Database for MemDatabase {
                     let s = &subject.clone();
                     let p = "http://example.com/".to_owned() + &child_kind.to_string();
                     let o = BlankNode::default();
-                    println!("{s} {p} {o} .");
                     quads.push(Quad { 
                         subject: subject.clone(),
                         predicate: NamedNode::new("http://example.com/".to_owned() + &child_kind.to_string())?,

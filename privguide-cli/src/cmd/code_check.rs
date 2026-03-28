@@ -42,6 +42,7 @@ pub fn analyse(dir: &str, code_dir: &str) {
                 // println!("{res:#?}");
                 let l = res.len();
                 println!("Done! {l}");
+                /*
                 res.reverse();
                 for mut entry in res {
                     entry.reverse();
@@ -51,6 +52,7 @@ pub fn analyse(dir: &str, code_dir: &str) {
                     }
                     print!("\n");
                 }
+                */
             },
             Err(e) => { 
                 println!("Error executing source code analysis query '{query}': {e}");

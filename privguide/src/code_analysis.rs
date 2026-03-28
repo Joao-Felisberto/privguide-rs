@@ -38,10 +38,20 @@ impl Language {
     }
 }
 
+/*
 pub struct CodeAnalyser {
     engine: Engine,
     store: WasmStore,
     languages: Vec<Language>,
+}
+*/
+
+pub struct CodeAnalyser {
+    // TODO: try to remove old crap
+    engine: Engine,
+    store: WasmStore,
+    languages: Vec<Language>,
+    extension_parser_map: HashMap<String, Parser>,
 }
 
 impl CodeAnalyser {
@@ -49,28 +59,47 @@ impl CodeAnalyser {
         let engine = Engine::default();
         let store = WasmStore::new(&engine).unwrap();
         let languages = Vec::new();
+        let extension_parser_map = HashMap::new();
 
         Self {
             engine,
             store,
             languages,
+            extension_parser_map,
         }
     }
 
     pub fn add_language(&mut self, language: Language) {
+        language.file_extensions.iter()
+            .for_each(|ext| {
+                let mut parser = Parser::new();
+                let engine = Engine::default();
+                let mut store = WasmStore::new(&engine).unwrap();
+                let lang = store.load_language(&language.language, &language.grammar)
+                    .expect("Could not load language");
+                parser.set_wasm_store(store);
+                parser
+                    .set_language(&lang.into())
+                    .expect("Error loading parser");
+                self.extension_parser_map.insert(ext.clone(), parser);
+            });
         self.languages.push(language);
     }
 
     pub fn parse_file<T: Database>(&mut self, db: &mut T, file: &Path) -> Result<(), CodeParseError> {
-        let mut parser = Parser::new();
-        let mut store = WasmStore::new(&self.engine).unwrap();
-        parser.set_wasm_store(store);
-
+        /*
         let ext = match file.extension().and_then(|ext| ext.to_str()) {
             Some(ext) => Ok(ext.to_string()),
             None => Err(CodeParseError::NoExtension(format!("{file:?}"))),
         }?;
+        */
+        let res_opt = file.extension().and_then(|ext| ext.to_str());
+        if res_opt.is_none() {
+            return Ok(());
+        }
+        let ext = res_opt.unwrap();
 
+        /*
         let lang = match self
             .languages
             .iter()
@@ -80,11 +109,12 @@ impl CodeAnalyser {
             Some(lang) => Ok(lang),
             None => Err(CodeParseError::NoGrammar(ext)),
         }?;
-        let abi_v = tree_sitter::LANGUAGE_VERSION;
-        println!("Parser ABI: {abi_v}");
-        // let parser_language = self.store.load_language("lua", LUA_GRAMMAR)?; /*<--- FAIL*/
-        let parser_language = self.store.load_language(&lang.language, &lang.grammar)?; /*<--- FAIL*/
-        parser.set_language(&parser_language)?;
+        */
+        let parser = self.extension_parser_map.get_mut(ext);
+        if parser.is_none() {
+            return Ok(())
+        }
+        let parser = parser.unwrap();
         // parser.set_language(&tree_sitter_lua::LANGUAGE.into())?;
         let source_code = fs::read_to_string(file)?;
 
