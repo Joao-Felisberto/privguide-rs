@@ -1,9 +1,7 @@
-use std::fmt::Display;
 
 use oxigraph::sparql::{QueryEvaluationError, SparqlSyntaxError, UpdateEvaluationError};
 use oxigraph::model::{BlankNodeIdParseError, IriParseError};
 use oxigraph::store::StorageError;
-use serde::Deserialize;
 use thiserror::Error;
 use tree_sitter::{LanguageError, WasmError};
 
@@ -19,7 +17,7 @@ pub enum ConversionError {
     YAMLError(#[from] serde_yaml_ng::Error),
 }
 
-pub type ConversionResult<T: for<'de> Deserialize<'de>> = Result<T, ConversionError>;
+pub type ConversionResult<T> = Result<T, ConversionError>;
 
 #[derive(Error, Debug)]
 pub enum ExecuteQueryError {

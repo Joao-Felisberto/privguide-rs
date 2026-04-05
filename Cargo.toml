@@ -1,5 +1,5 @@
 [workspace]
-members = [
+members = ["labs/lua-demo","labs/steel",
     "labs/ts-triples",
     "privguide",
     "privguide-cli",

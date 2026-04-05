@@ -3,10 +3,8 @@ use std::{collections::HashMap, fs::File};
 use std::fs;
 use std::path::Path;
 
-use oxigraph::model::{Term, Variable};
 use serde::{Deserialize, Serialize};
 
-use oxigraph::sparql::{QuerySolution};
 
 use crate::error::ConversionResult;
 
@@ -135,7 +133,9 @@ impl QueryMetadata {
 pub struct AttackTree {
     query: String,
     children: Vec<AttackTree>,
+    #[serde(skip_deserializing)]
     query_results: Vec<Vec<(String, String)>>,
+    #[serde(skip_deserializing)]
     has_executed: bool,
 }
 
@@ -144,7 +144,12 @@ impl AttackTree {
         let file = File::open(path)?;
         let reader = BufReader::new(file);
 
-        let res = serde_yaml_ng::from_reader(reader)?;
+        let mut res: AttackTree = serde_yaml_ng::from_reader(reader)?;
+        res.has_executed = false;
+        res.query = match path.parent() {
+            Some(par) => par.join(res.query).to_str().unwrap().to_string(),
+            None => res.query,
+        };
         Ok(res)
     }
 
@@ -314,5 +319,16 @@ SELECT ?s WHERE { ?s ?p ?o }"#;
             Some(&"This query finds all subjects".to_string())
         );
         assert_eq!(metadata.key_value_pairs.len(), 3);
+    }
+
+    #[test]
+    fn test_read_attack_trees() {
+        let src = r#"
+query: attack.rq
+children: []
+        "#;
+        
+        let res: AttackTree = serde_yaml_ng::from_str(src).unwrap();
+        println!("{res:#?}");
     }
 }

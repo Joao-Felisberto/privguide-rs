@@ -1,6 +1,6 @@
-use std::{collections::HashMap, hash::Hash};
+use std::hash::Hash;
 
-use privguide::database::{Database, MemDatabase};
+use privguide::database::MemDatabase;
 use oxigraph::store::StorageError;
 
 use crate::fs;
@@ -11,7 +11,7 @@ pub enum QueryKind {
     Attack,
     Requirement,
     Reasoner,
-    ExtraInfo,
+    ExtraData,
     SourceCode,
 }
 

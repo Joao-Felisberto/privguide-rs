@@ -79,7 +79,25 @@ pub fn analyse(dir: &str) {
     }
 
     // Check requirements
+    for query in query_index.get(&QueryKind::Requirement).or(Some(&Vec::<String>::new())).unwrap() {
+        match db.execute_query(query) {
+            Ok(res) => {
+                if res.is_empty() {
+                    report.add_unmet_requirement(query.clone());
+                }
+            },
+            Err(e) => println!("Could not run requirements query '{query}': {e}"),
+        };
+    }
+
     // Extra data
+    for query in query_index.get(&QueryKind::ExtraData).or(Some(&Vec::<String>::new())).unwrap() {
+        match db.execute_query(query) {
+            Ok(res) => report.add_extra_data(query.clone(), res),
+            Err(e) => println!("Could not run extra data query '{query}': {e}"),
+        };
+    }
+
     // Compile report
     println!("{report:#?}");
 }

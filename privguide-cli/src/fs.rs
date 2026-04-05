@@ -2,7 +2,7 @@ use std::{collections::HashMap, io, path::Path, fs::File};
 use serde::Deserialize;
 use serde_json;
 
-use privguide::{code_analysis::{CodeAnalyser, Language}, converters::{Format, convert_file, convert_file_from_format}, database::Database, error::{CodeParseError, ConversionError, ConversionResult, DataLoadError}, query::{AttackTree, Query}};
+use privguide::{code_analysis::{CodeAnalyser, Language}, converters::{Format, convert_file, convert_file_from_format}, database::Database, error::{CodeParseError, ConversionError, DataLoadError}, query::{AttackTree, Query}};
 
 use crate::{db::QueryKind, error::LanguageLoadError};
 
@@ -13,7 +13,7 @@ const SUBDIR_AND_QUERYKIND: [(&str, QueryKind); 6]  = [
     ("attack_trees", QueryKind::Attack),
     ("reasoner", QueryKind::Reasoner),
     ("regulations", QueryKind::Regulation),
-    ("report_data", QueryKind::ExtraInfo),
+    ("report_data", QueryKind::ExtraData),
     ("requirements", QueryKind::Requirement),
     ("source_code", QueryKind::SourceCode),
 ];
@@ -147,8 +147,13 @@ pub fn load_attack_trees_from_disk(dir: String) -> Result<Vec<AttackTree>, Conve
                 break;
             } 
 
-            let tree = AttackTree::from_file(path.as_path())?;
-            trees.push(tree);
+            if  let Some(ext) = path.extension() &&
+                let Some(e) = ext.to_str() && 
+                e == "yml" {
+                    let tree = AttackTree::from_file(path.as_path())?;
+                    trees.push(tree);
+            }
+            
         }
     }
 

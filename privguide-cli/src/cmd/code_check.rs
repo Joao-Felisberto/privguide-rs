@@ -38,7 +38,7 @@ pub fn analyse(dir: &str, code_dir: &str) {
 
     for query in query_index.get(&QueryKind::SourceCode).or(Some(&Vec::<String>::new())).unwrap() {
         match db.execute_query(query) {
-            Ok(mut res) => {
+            Ok(res) => {
                 // println!("{res:#?}");
                 let l = res.len();
                 println!("Done! {l}");
