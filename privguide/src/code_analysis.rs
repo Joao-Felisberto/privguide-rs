@@ -38,14 +38,6 @@ impl Language {
     }
 }
 
-/*
-pub struct CodeAnalyser {
-    engine: Engine,
-    store: WasmStore,
-    languages: Vec<Language>,
-}
-*/
-
 pub struct CodeAnalyser {
     // TODO: try to remove old crap
     engine: Engine,

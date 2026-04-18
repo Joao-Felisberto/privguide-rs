@@ -1,3 +1,5 @@
+use std::{fs::File, io::BufWriter, path::PathBuf};
+
 use privguide::database::{Database, MemDatabase};
 use crate::{db::{self, DBKind, QueryKind}, fs, report::Report};
 
@@ -37,7 +39,6 @@ pub fn analyse(dir: &str) {
         }
     };
     let idx = query_index.iter().clone();
-    println!("Index: {idx:#?}");
 
     // Load descriptions
     if let Err(e) = fs::load_descriptions(&mut db, dir.to_string()) {
@@ -99,6 +100,15 @@ pub fn analyse(dir: &str) {
     }
 
     // Compile report
-    println!("{report:#?}");
+    std::fs::create_dir_all("./out").expect("Could not create out dir");
+
+    let mut output_path = PathBuf::from("./out");
+    output_path.push("analysis_report");
+    output_path.set_extension("json");
+
+    let file = File::create(&output_path).expect("Could not create output file");
+    let writer = BufWriter::new(file);
+
+    serde_json::to_writer(writer, &report).expect("Could not write JSON to file");
 }
 

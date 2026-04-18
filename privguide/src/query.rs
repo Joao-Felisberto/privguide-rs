@@ -6,6 +6,7 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 
 
+use crate::database::QueryResultsMap;
 use crate::error::ConversionResult;
 
 #[derive(Debug)]
@@ -134,7 +135,7 @@ pub struct AttackTree {
     query: String,
     children: Vec<AttackTree>,
     #[serde(skip_deserializing)]
-    query_results: Vec<Vec<(String, String)>>,
+    query_results: QueryResultsMap,
     #[serde(skip_deserializing)]
     has_executed: bool,
 }
@@ -178,7 +179,7 @@ impl AttackTree {
         self.has_executed && !self.query_results.is_empty()
     }
 
-    pub fn set_executed(&mut self, results: Vec<Vec<(String, String)>>) {
+    pub fn set_executed(&mut self, results: QueryResultsMap) {
         self.has_executed = true;
         self.query_results = results;
     }

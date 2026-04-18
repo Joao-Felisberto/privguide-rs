@@ -30,8 +30,12 @@ struct Frame<'a> {
     subject: NamedOrBlankNode,
 }
 
+// pub type QueryResultsMap = Vec<Vec<(String, String)>>;
+pub type QueryResultsMap = Vec<HashMap<String, String>>;
+
 pub trait Database {
-    fn execute_query(&self, query_k: &str) -> Result<Vec<Vec<(String, String)>>, ExecuteQueryError>;
+    fn execute_query(&self, query_k: &str) -> Result<QueryResultsMap, ExecuteQueryError>;
+
     fn execute_update(&self, query_k: &str) -> Result<(), ExecuteQueryError>;
 
     fn load_query(&mut self, file: String, query: Query);
@@ -113,7 +117,7 @@ impl MemDatabase {
 }
 
 impl Database for MemDatabase {
-    fn execute_query(&self, query_k: &str) -> Result<Vec<Vec<(String, String)>>, ExecuteQueryError> {
+    fn execute_query(&self, query_k: &str) -> Result<QueryResultsMap, ExecuteQueryError> {
         let query = self
             .queries
             .get(query_k)
