@@ -38,7 +38,6 @@ pub fn analyse(dir: &str) {
             return;
         }
     };
-    let idx = query_index.iter().clone();
 
     // Load descriptions
     if let Err(e) = fs::load_descriptions(&mut db, dir.to_string()) {
@@ -47,7 +46,7 @@ pub fn analyse(dir: &str) {
     }
 
     // Run reasoner
-    for query in query_index.get(&QueryKind::Reasoner).or(Some(&Vec::<String>::new())).unwrap() {
+    for query in query_index.get(&QueryKind::Reasoner).unwrap_or(&Vec::<String>::new()) {
         if let Err(e) = db.execute_update(query) {
             println!("Error executing reasoner rule '{query}': {e}");
             return;
@@ -55,7 +54,7 @@ pub fn analyse(dir: &str) {
     }
 
     // Run regulations
-    for query in query_index.get(&QueryKind::Regulation).or(Some(&Vec::<String>::new())).unwrap() {
+    for query in query_index.get(&QueryKind::Regulation).unwrap_or(&Vec::<String>::new()) {
         match db.execute_query(query) {
             Ok(res) => report.add_violations(query.clone(), res),
             Err(e) => println!("Could not run regulation query '{query}': {e}"),
@@ -80,7 +79,7 @@ pub fn analyse(dir: &str) {
     }
 
     // Check requirements
-    for query in query_index.get(&QueryKind::Requirement).or(Some(&Vec::<String>::new())).unwrap() {
+    for query in query_index.get(&QueryKind::Requirement).unwrap_or(&Vec::<String>::new()) {
         match db.execute_query(query) {
             Ok(res) => {
                 if res.is_empty() {
@@ -92,7 +91,7 @@ pub fn analyse(dir: &str) {
     }
 
     // Extra data
-    for query in query_index.get(&QueryKind::ExtraData).or(Some(&Vec::<String>::new())).unwrap() {
+    for query in query_index.get(&QueryKind::ExtraData).unwrap_or(&Vec::<String>::new()) {
         match db.execute_query(query) {
             Ok(res) => report.add_extra_data(query.clone(), res),
             Err(e) => println!("Could not run extra data query '{query}': {e}"),

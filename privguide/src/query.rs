@@ -5,7 +5,6 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
-
 use crate::database::QueryResultsMap;
 use crate::error::ConversionResult;
 
@@ -64,22 +63,22 @@ impl QueryMetadata {
                 continue;
             }
 
-            if line.starts_with('#') {
+            if let Some(line) = line.strip_prefix('#') {
                 if !in_top_comment {
                     in_top_comment = true;
                 }
 
                 // Check if this is a continuation line (starts with # followed by 2 or more spaces)
-                if line.starts_with("#  ") && current_key.is_some() {
+                if line.starts_with("  ") && current_key.is_some() {
                     // This is a continuation of a multiline value
                     if !current_value.is_empty() {
                         current_value.push(' ');
                     }
-                    current_value.push_str(line[3..].trim());
+                    current_value.push_str(line[2..].trim());
                     continue; // Skip further processing for continuation lines
                 }
 
-                let comment_content = line[1..].trim();
+                let comment_content = line.trim();
 
                 // Check if this line contains a key-value pair
                 if let Some(colon_pos) = comment_content.find(':') {

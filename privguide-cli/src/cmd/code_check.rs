@@ -1,4 +1,4 @@
-use std::{collections::{HashMap, HashSet}, fs::File, io::BufWriter, path::{Path, PathBuf}};
+use std::{fs::File, io::BufWriter, path::{Path, PathBuf}};
 
 use privguide::{code_analysis::CodeAnalyser, database::{Database, MemDatabase}};
 
@@ -13,7 +13,7 @@ pub fn analyse(dir: &str, code_dir: &str) {
         }
     };
 
-    let mut code_analyser = CodeAnalyser::new();
+    let mut code_analyser = CodeAnalyser::default();
 
     let query_index = match fs::load_queries(&mut db, dir) {
         Ok(index) => index,
@@ -25,7 +25,11 @@ pub fn analyse(dir: &str, code_dir: &str) {
 
     match fs::load_languages(dir) {
         Ok(languages) => {
-            languages.into_iter().for_each(|l| code_analyser.add_language(l));
+            for l in languages {
+                if let Err(e) = code_analyser.add_language(l) {
+                    println!("Could not load language: {e}");
+                }
+            }
         },
         Err(e) => {
             println!("Error loading grammars: {}", e);
@@ -39,7 +43,7 @@ pub fn analyse(dir: &str, code_dir: &str) {
     };
 
     // let mut query_results = HashMap::new();
-    for query in query_index.get(&QueryKind::SourceCode).or(Some(&Vec::<String>::new())).unwrap() {
+    for query in query_index.get(&QueryKind::SourceCode).unwrap_or(&Vec::<String>::new()) {
         match db.execute_query(query) {
             Ok(res) => {
                 // query_results.insert(query.clone(), res);

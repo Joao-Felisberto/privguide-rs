@@ -31,17 +31,6 @@ pub enum ExecuteQueryError {
     UpdateEvaluationError(#[from] UpdateEvaluationError),
 }
 
-/*
-#[derive(Error, Debug)]
-pub struct NotFoundError(pub String);
-
-impl Display for NotFoundError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "'{}' not found.", self.0)
-    }
-}
-*/
-
 #[derive(Error, Debug)]
 pub enum IRIConversionError {
     #[error("Prefix '{0}' not found in the prefix map")]
@@ -98,4 +87,12 @@ pub enum CodeParseError {
     LanguageError(#[from] LanguageError),
     #[error("Error loading source code into database: {0}")]
     DatabaseLoadError(#[from] DatabaseLoadError),
+}
+
+#[derive(Error, Debug)]
+pub enum LanguageLoadError {
+    #[error("Could not create Wasm store: {0}")]
+    WasmError(#[from] WasmError),
+    #[error("Could not load language: {0}")]
+    LanguageError(#[from] LanguageError),
 }

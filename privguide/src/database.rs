@@ -222,7 +222,7 @@ impl Database for MemDatabase {
 
                                 quads.push(Quad {
                                     subject: current_subject.clone(),
-                                    predicate: predicate,
+                                    predicate,
                                     object: new_subject.clone(),
                                     graph_name: GraphName::DefaultGraph,
                                 });
@@ -271,7 +271,7 @@ impl Database for MemDatabase {
                             _ => {
                                 quads.push(Quad {
                                     subject: current_subject.clone(),
-                                    predicate: predicate,
+                                    predicate,
                                     object: self.rdf_object_from_value(val)?,
                                     graph_name: GraphName::DefaultGraph,
                                 });
@@ -321,8 +321,6 @@ impl Database for MemDatabase {
         
         let root = tree.root_node();
 
-        let s = "http://exmaple.com/ROOT";
-        let p = "http://example.com/".to_owned() + &root.kind().to_string();
         let o = BlankNode::default();
         stack.push(Frame {
             node: root,
@@ -331,12 +329,10 @@ impl Database for MemDatabase {
 
         quads.push(Quad {
             subject: NamedOrBlankNode::NamedNode(NamedNode::new("http://exmaple.com/ROOT")?),
-            predicate: NamedNode::new("http://example.com/".to_owned() + &root.kind().to_string())?,
+            predicate: NamedNode::new("http://example.com/".to_owned() + root.kind())?,
             object: Term::BlankNode(o),
             graph_name: GraphName::DefaultGraph,
         });
-
-        let mut next_id: usize = 1;
 
         while let Some(frame) = stack.pop() {
 
@@ -359,27 +355,19 @@ impl Database for MemDatabase {
 
                     let text = &source[child.byte_range()];
 
-                    let s = &subject.clone();
-                    let p = "http://example.com/".to_owned() + &field.to_string();
-                    let o: String = format!("\"{text}\"").into();
                     quads.push(Quad { 
                         subject: subject.clone(), 
-                        predicate: NamedNode::new("http://example.com/".to_owned() + &field.to_string())?, 
+                        predicate: NamedNode::new("http://example.com/".to_owned() + field)?, 
                         object: Term::Literal(format!("\"{text}\"").into()), 
                         graph_name: GraphName::DefaultGraph,
                     });
 
                 } else {
 
-                    let id = next_id;
-                    next_id += 1;
-
-                    let s = &subject.clone();
-                    let p = "http://example.com/".to_owned() + &child_kind.to_string();
                     let o = BlankNode::default();
                     quads.push(Quad { 
                         subject: subject.clone(),
-                        predicate: NamedNode::new("http://example.com/".to_owned() + &child_kind.to_string())?,
+                        predicate: NamedNode::new("http://example.com/".to_owned() + child_kind)?,
                         object: Term::BlankNode(o.clone()), // Term::BlankNode(BlankNode::default())
                         graph_name: GraphName::DefaultGraph,
                     });
@@ -429,6 +417,7 @@ mod tests {
     use thiserror::Error;
 
     #[derive(Error, Debug)]
+    #[allow(clippy::enum_variant_names)]
     enum TestError {
         #[error("Could not read the YAML content of the file: {0}")]
         YAMLError(#[from] serde_yaml_ng::Error),
@@ -493,35 +482,31 @@ mod tests {
         let mut test_files = Vec::new();
 
         let entries = fs::read_dir(cfg_dir)?;
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if let Some(extension) = path.extension() {
-                    if input_ext.contains(&extension) {
-                        if let Some(stem) = path.file_stem() {
-                            let stem_str = &stem.to_string_lossy().to_string();
-                            for ext in output_ext {
-                                let expected_path = format!(
-                                    "{}.{}",
-                                    Path::new(cfg_dir).join(stem_str).to_str().unwrap(),
-                                    ext.to_string_lossy()
-                                );
-                                let expected_path = Path::new(&expected_path);
-                                if expected_path.exists() {
-                                    test_files.push(
-                                        Path::new(cfg_dir)
-                                            .join(stem_str)
-                                            .to_str()
-                                            .unwrap()
-                                            .to_string(),
-                                    );
-                                    break;
-                                }
-                            }
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if let Some(extension) = path.extension() &&
+                input_ext.contains(&extension) &&
+                let Some(stem) = path.file_stem() {
+                    let stem_str = &stem.to_string_lossy().to_string();
+                    for ext in output_ext {
+                        let expected_path = format!(
+                            "{}.{}",
+                            Path::new(cfg_dir).join(stem_str).to_str().unwrap(),
+                            ext.to_string_lossy()
+                        );
+                        let expected_path = Path::new(&expected_path);
+                        if expected_path.exists() {
+                            test_files.push(
+                                Path::new(cfg_dir)
+                                    .join(stem_str)
+                                    .to_str()
+                                    .unwrap()
+                                    .to_string(),
+                            );
+                            break;
                         }
                     }
                 }
-            }
         }
 
         Ok(test_files)
