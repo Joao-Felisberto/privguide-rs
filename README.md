@@ -2,7 +2,7 @@
 
 A port of [privguide](https://github.com/ATNoG/rigourous-devprivops) to rust.
 
-Why? Because corporate development is no fun.
+Why? Because fun.
 
 ## Scope
 
@@ -21,7 +21,6 @@ TODO
 
 - **/privguide** The common library upon which all interfaces are built
 - **/privguide-cli** The CLI interface
-- **/privguide-app** The UI app built with TAURI (_soon_)
 
 ## Compiling
 
