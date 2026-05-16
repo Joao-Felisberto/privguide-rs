@@ -9,12 +9,13 @@ use crate::{db::QueryKind, error::LanguageLoadError};
 const EXTENSIONS: [&str; 2] = ["rq", "sparql"];
 const DESCRIPTIONS_DIR: &str = "descriptions";
 const ATTACK_DIR: &str = "attack_trees";
-const SUBDIR_AND_QUERYKIND: [(&str, QueryKind); 6]  = [ 
+const SUBDIR_AND_QUERYKIND: [(&str, QueryKind); 7]  = [ 
     ("attack_trees", QueryKind::Attack),
     ("reasoner", QueryKind::Reasoner),
     ("regulations", QueryKind::Regulation),
     ("report_data", QueryKind::ExtraData),
     ("requirements", QueryKind::Requirement),
+    ("code_gen", QueryKind::CodeGenData),
     ("source_code", QueryKind::SourceCode),
 ];
 const GRAMMARS_DIR: &str = "grammars";
@@ -114,7 +115,7 @@ pub fn load_descriptions<T: Database>(db: &mut T, dir: String) -> Result<(), Dat
             let quads = convert_file(path.as_path())?;
             let extension = match extract_placeholder_from_path(&path) {
                 Some(ext) => Ok(ext),
-                None => Err(DataLoadError::FileWithNoExtensionError(path.to_str().unwrap_or("").to_string())),
+    None => Err(DataLoadError::FileWithNoExtensionError(path.to_str().unwrap_or("").to_string())),
             }?;
             let file_prefix = match file_prefixes.get(&extension){
                 Some(pref) => Ok(pref),

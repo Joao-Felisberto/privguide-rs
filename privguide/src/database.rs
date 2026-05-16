@@ -9,6 +9,7 @@ use oxigraph::model::NamedNode;
 use oxigraph::model::NamedOrBlankNode;
 use oxigraph::model::Quad;
 use oxigraph::model::Term;
+use oxigraph::sparql::QueryTripleIter;
 use oxigraph::sparql::{QueryResults, SparqlEvaluator};
 use oxigraph::store::{StorageError, Store};
 
@@ -35,6 +36,8 @@ pub type QueryResultsMap = Vec<HashMap<String, String>>;
 
 pub trait Database {
     fn execute_query(&self, query_k: &str) -> Result<QueryResultsMap, ExecuteQueryError>;
+
+    fn execute_graph_query(&self, query_k: &str) -> Result<QueryTripleIter<'_>, ExecuteQueryError>;
 
     fn execute_update(&self, query_k: &str) -> Result<(), ExecuteQueryError>;
 
@@ -110,7 +113,10 @@ impl MemDatabase {
                 format!("{b}"),
                 NamedNode::new("http://www.w3.org/2001/XMLSchema#boolean")?,
             ))),
-            _ => Err(DatabaseLoadError::UnparseableObjectError),
+            _ => {
+                println!("Failed to parse {o:#?}");
+                Err(DatabaseLoadError::UnparseableObjectError)
+            },
         }
     }
 
@@ -137,9 +143,36 @@ impl Database for MemDatabase {
                         term_to_string(pair.1),
                     )).collect()
                 ).collect())
+        } else if let QueryResults::Graph(g) = query_results { 
+            Ok(g.into_iter()
+                .filter_map(|triple| triple.ok()) // maybe do better error handling?
+                .map(|triple| {
+                    HashMap::from([
+                        ("?s".to_string(), triple.subject.to_string()),
+                        ("?p".to_string(), triple.predicate.to_string()),
+                        ("?o".to_string(), triple.object.to_string()),
+                    ])
+                }).collect())
         } else {
             Ok(Vec::new()) // todo: there are more options that might be useful to implement,
                            // check https://docs.rs/oxigraph/latest/oxigraph/sparql/enum.QueryResults.html
+        }
+    }
+
+    fn execute_graph_query(&self, query_k: &str) -> Result<QueryTripleIter<'_>, ExecuteQueryError> {
+        let query = self
+            .queries
+            .get(query_k)
+            .ok_or(ExecuteQueryError::QueryNotFound(query_k.to_string()))?;
+
+        let query_results = SparqlEvaluator::new()
+            .parse_query(&query.get_query())?
+            .on_store(&self.store)
+            .execute()?;
+
+        match query_results {
+            QueryResults::Graph(g) => Ok(g),
+            _ => Err(ExecuteQueryError::WrongQueryType(query_k.to_string(), "Describe,Construct".to_string())),
         }
     }
 
@@ -213,7 +246,10 @@ impl Database for MemDatabase {
                                 let new_subject = match nested_obj.get("id") {
                                     Some(id) => match id {
                                         Value::String(s) => Ok(Term::NamedNode(NamedNode::new(format!("{default_url}/{s}"))?)),
-                                        _ => Err(DatabaseLoadError::UnparseableObjectError),
+                                        _ => {
+                                            println!("Failed to parse {val:#?}");
+                                            Err(DatabaseLoadError::UnparseableObjectError)
+                                        },
                                     },
                                     None => {
                                         Ok(Term::BlankNode(BlankNode::default()))

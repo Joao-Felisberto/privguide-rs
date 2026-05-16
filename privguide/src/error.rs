@@ -23,6 +23,8 @@ pub type ConversionResult<T> = Result<T, ConversionError>;
 pub enum ExecuteQueryError {
     #[error("Query not found: {0}")]
     QueryNotFound(String),
+    #[error("Query '{0}' is not of type '{1}'")]
+    WrongQueryType(String, String),
     #[error("Syntax error on query: {0}")]
     SyntaxError(#[from] SparqlSyntaxError),
     #[error("Could not evaluate query: {0}")]

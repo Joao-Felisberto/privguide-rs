@@ -46,12 +46,8 @@ pub struct QueryMetadata {
 }
 
 impl QueryMetadata {
-    pub fn new() -> Self {
-        Default::default()
-    }
-
     pub fn from_query(query: &str) -> Self {
-        let mut metadata = Self::new();
+        let mut metadata = Self::default();
 
         let mut in_top_comment = false;
         let mut current_key: Option<String> = None;
@@ -194,6 +190,8 @@ mod tests {
 # some number: 42
 # multiline: strings with multiple lines can be encoded in the 
 #  value if the comment starts with more than 2 spaces.
+# another multiline: if there are a lot of spaces
+#                    it still works
 SELECT * WHERE { ?s ?p ?o }"#;
 
         let metadata = QueryMetadata::from_query(content);
@@ -201,7 +199,8 @@ SELECT * WHERE { ?s ?p ?o }"#;
         assert_eq!(metadata.get("key"), Some(&"and its value".to_string()));
         assert_eq!(metadata.get("some number"), Some(&"42".to_string()));
         assert_eq!(metadata.get("multiline"), Some(&"strings with multiple lines can be encoded in the value if the comment starts with more than 2 spaces.".to_string()));
-        assert_eq!(metadata.key_value_pairs.len(), 3);
+        assert_eq!(metadata.get("another multiline"), Some(&"if there are a lot of spaces it still works".to_string()));
+        assert_eq!(metadata.key_value_pairs.len(), 4);
     }
 
     #[test]
