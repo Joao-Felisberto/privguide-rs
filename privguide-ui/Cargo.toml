@@ -1,0 +1,13 @@
+[package]
+name = "privguide-ui"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+eframe = "0.34.2"
+egui = "0.34.2"
+egui_graphs = "0.30.0"
+petgraph = "0.8.3"
+privguide = { path = "../privguide" }
+privguide-cli = { path = "../privguide-cli" }
+oxigraph = { version = "0.5.2", default-features = false }

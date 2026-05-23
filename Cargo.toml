@@ -4,8 +4,8 @@ members = [
     # "labs/steel",
     # "labs/ts-triples",
     "privguide",
-    "privguide-cli",
-  # "privguide-app",
+    "privguide-cli", 
+    "privguide-ui",
 ]
 
 resolver = "2"

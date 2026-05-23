@@ -60,6 +60,8 @@ pub trait Database {
     fn get_prefix_map(&self) -> &HashMap<String, String>;
 
     fn get_file_prefixes(&self) -> &HashMap<String, String>;
+
+    fn triples(&self) -> oxigraph::store::QuadIter<'_>;
 }
 
 pub struct MemDatabase {
@@ -346,7 +348,6 @@ impl Database for MemDatabase {
         &self.file_prefixes
     }
 
-
     fn load_source_code(
         &mut self,
         tree: &Tree,
@@ -421,6 +422,10 @@ impl Database for MemDatabase {
         bulk_loader.commit()?;
 
         Ok(())
+    }
+
+    fn triples(&self) -> oxigraph::store::QuadIter<'_> {
+        self.store.iter()
     }
 }
 

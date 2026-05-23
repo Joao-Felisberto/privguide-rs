@@ -113,9 +113,9 @@ pub fn analyse(dir: &str) {
     tera.autoescape_on(vec![]);
 
     for query in query_index.get(&QueryKind::CodeGenData).unwrap_or(&Vec::<String>::new()) {
+        println!("Running {query}");
         match db.execute_graph_query(query) {
             Ok(res) => {
-
                 let json_res = triples_to_json(&db, res);
                 let entries = match json_res.get("ex_all") {
                     Some(serde_json::Value::Array(es)) => es,
